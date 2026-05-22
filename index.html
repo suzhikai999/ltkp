@@ -64,6 +64,14 @@
             padding: 20px 40px;
             border-radius: 8px;
         }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -76,6 +84,7 @@
         <div id="player"></div>
         <div id="gameOver">游戏结束<br>点击重新开始</div>
     </div>
+    <div id="loading">正在加载资源，请稍候...</div>
 
     <script>
         const PLAYER_GIF="a_man.gif";
@@ -85,13 +94,45 @@
         const game = document.getElementById("game");
         const player = document.getElementById("player");
         const gameOver = document.getElementById("gameOver");
+        const loading = document.getElementById("loading");
 
         const roads = [2,22,42,62,82].map(x=>x+"vw");
         let currentRoad = 2;
         let gameRunning = true;
 
-        player.style.backgroundImage = `url(${PLAYER_GIF})`;
-        player.style.left = roads[currentRoad];
+        const allImages = [
+            PLAYER_GIF,
+            ...OBSTACLE_LIST,
+            EXPLODE_GIF
+        ];
+
+        let loadedCount = 0;
+        function preloadImage(url) {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                loadedCount++;
+                if (loadedCount === allImages.length) {
+                    startGame();
+                }
+            };
+            img.onerror = () => {
+                loadedCount++;
+                if (loadedCount === allImages.length) {
+                    startGame();
+                }
+            };
+        }
+
+        function startGame() {
+            loading.style.display = "none";
+            player.style.backgroundImage = `url(${PLAYER_GIF})`;
+            player.style.left = roads[currentRoad];
+            loop();
+            spawnObstacle();
+        }
+
+        allImages.forEach(img => preloadImage(img));
 
         document.addEventListener("keydown", e=>{
             if(!gameRunning)return;
@@ -177,8 +218,6 @@
             }
             requestAnimationFrame(loop);
         }
-        loop();
-        spawnObstacle();
     </script>
 </body>
 </html>
