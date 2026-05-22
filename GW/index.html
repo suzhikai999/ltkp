@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            background: #fff;
+            overflow: hidden;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .road {
+            width: 20vw;
+            height: 100%;
+            float: left;
+            border-right: 1px dashed #999;
+        }
+        .road:last-child {border-right: none;}
+        #player,.obstacle {
+            position: absolute;
+            width: 12vw;
+            height: 12vw;
+            background-size:contain;
+            background-repeat: no-repeat;
+        }
+        .explode {
+            position: absolute;
+            width: 2000px;
+            height: 2000px;
+            background-size:400px;
+            background-repeat: no-repeat;
+        }
+        #player {
+            bottom: 8vh;
+            z-index: 10;
+        }
+        .explode {
+            z-index: 20;
+            display: none;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333;
+            font-size: 28px;
+            display: none;
+            text-align: center;
+            background: rgba(255,255,255,0.8);
+            padding: 20px 40px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div class="road"></div>
+        <div class="road"></div>
+        <div class="road"></div>
+        <div class="road"></div>
+        <div class="road"></div>
+        <div id="player"></div>
+        <div id="gameOver">游戏结束<br>点击重新开始</div>
+    </div>
+
+    <script>
+        const PLAYER_GIF="a_man.gif";
+        const OBSTACLE_LIST=["a_dog.gif","weidai.gif"];
+        const EXPLODE_GIF = "expl.gif";
+
+        const game = document.getElementById("game");
+        const player = document.getElementById("player");
+        const gameOver = document.getElementById("gameOver");
+
+        const roads = [2,22,42,62,82].map(x=>x+"vw");
+        let currentRoad = 2;
+        let gameRunning = true;
+
+        player.style.backgroundImage = `url(${PLAYER_GIF})`;
+        player.style.left = roads[currentRoad];
+
+        document.addEventListener("keydown", e=>{
+            if(!gameRunning)return;
+            if(e.key==="ArrowLeft"&&currentRoad>0)currentRoad--;
+            if(e.key==="ArrowRight"&&currentRoad<4)currentRoad++;
+        });
+
+        let touchStartX = 0;
+        document.addEventListener("touchstart",e=>touchStartX=e.changedTouches[0].screenX);
+        document.addEventListener("touchend",e=>{
+            if(!gameRunning)return;
+            let diff = e.changedTouches[0].screenX - touchStartX;
+            if(diff<-60&&currentRoad<4)currentRoad++;
+            if(diff>60&&currentRoad>0)currentRoad--;
+        });
+
+        function spawnObstacle(){
+            if(!gameRunning)return;
+            let obs = document.createElement("div");
+            obs.className = "obstacle";
+            let randomObs = OBSTACLE_LIST[Math.floor(Math.random()*OBSTACLE_LIST.length)];
+            obs.style.backgroundImage = `url(${randomObs})`;
+            let randRoad = Math.floor(Math.random()*5);
+            obs.style.left = roads[randRoad];
+            obs.style.top = "0px";
+            game.appendChild(obs);
+
+            let fallTimer = setInterval(()=>{
+                if(!gameRunning){clearInterval(fallTimer);return;}
+                let top = parseInt(obs.style.top);
+                obs.style.top = top + 10 + "px";
+
+                let pRect = player.getBoundingClientRect();
+                let oRect = obs.getBoundingClientRect();
+                if(pRect.left<oRect.right-50&&pRect.right>oRect.left+50&&pRect.top<oRect.bottom-50&&pRect.bottom>oRect.top+50){
+                    crashEffect();
+                    endGame();
+                    clearInterval(fallTimer);
+                    return;
+                }
+                if(top>window.innerHeight){
+                    clearInterval(fallTimer);
+                    obs.remove();
+                }
+            },30);
+            setTimeout(spawnObstacle,Math.random()*1000+700);
+        }
+
+        function crashEffect(){
+            let explode = document.createElement("div");
+            explode.className = "explode";
+            explode.style.backgroundImage = `url(${EXPLODE_GIF}?t=${Date.now()})`;
+            
+            let pRect = player.getBoundingClientRect();
+            let gameRect = game.getBoundingClientRect();
+            let relTop = pRect.top - gameRect.top;
+            let relLeft = pRect.left - gameRect.left;
+            explode.style.top = relTop-10 + "px";
+            explode.style.left = relLeft-100 + "px";
+            explode.style.display = "block";
+            
+            game.appendChild(explode);
+            
+            setTimeout(() => {
+                explode.remove();
+            }, 3300);
+        }
+
+        function endGame(){
+            gameRunning = false;
+            gameOver.style.display = "block";
+        }
+
+        game.addEventListener("click",()=>{
+            if(!gameRunning)location.reload();
+        });
+
+        function loop(){
+            if(gameRunning){
+                let nowLeft = parseFloat(player.style.left);
+                let targetLeft = parseFloat(roads[currentRoad]);
+                player.style.left = nowLeft - (nowLeft - targetLeft) / 10 + "vw";
+            }
+            requestAnimationFrame(loop);
+        }
+        loop();
+        spawnObstacle();
+    </script>
+</body>
+</html>
