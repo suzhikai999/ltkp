@@ -163,7 +163,7 @@
             let fallTimer = setInterval(()=>{
                 if(!gameRunning){clearInterval(fallTimer);return;}
                 let top = parseInt(obs.style.top);
-                obs.style.top = top + 10 + "px";
+                obs.style.top = top + 50 + "px";
 
                 let pRect = player.getBoundingClientRect();
                 let oRect = obs.getBoundingClientRect();
